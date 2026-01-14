@@ -219,6 +219,24 @@ public class ProjectManagementService {
                 .collect(Collectors.toList());
     }
 
+    public List<Ticket> getTicketsByProject(UUID projectId) {
+        return tickets.values().stream()
+                .filter(t -> projectId.equals(t.projectId()))
+                .collect(Collectors.toList());
+    }
+
+    public List<BugReport> getBugReportsByProject(UUID projectId) {
+        return bugReports.values().stream()
+                .filter(b -> projectId.equals(b.projectId()))
+                .collect(Collectors.toList());
+    }
+
+    public List<Milestone> getMilestonesByProject(UUID projectId) {
+        return milestones.values().stream()
+                .filter(m -> projectId.equals(m.projectId()))
+                .collect(Collectors.toList());
+    }
+
     private void validateUserExists(UUID userId) {
         if (!users.containsKey(userId)) {
             throw new IllegalArgumentException(STR."User with id \{userId} does not exist");

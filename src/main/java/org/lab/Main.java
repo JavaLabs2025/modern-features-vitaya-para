@@ -3,14 +3,16 @@ package org.lab;
 import org.lab.model.*;
 import org.lab.service.SmartPermissionChecker;
 import org.lab.service.ProjectManagementService;
+import org.lab.service.ProjectAnalyticsService;
 
 import java.util.Set;
 
 public class Main {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         var service = new ProjectManagementService();
         var manager = service.registerUser("alice", "alice@company.com", "Alice Manager");
-        var teamLead = service.registerUser("bob", "bob@company.com", "Bob TeamLead");
+        var teamLead
+                = service.registerUser("bob", "bob@company.com", "Bob TeamLead");
         var developer = service.registerUser("charlie", "charlie@company.com", "Charlie Dev");
         var project = service.createProject("E-Commerce", "Online store", manager.id());
         service.addTeamMember(project.id(), developer.id(), new Role.Developer(), manager.id());
@@ -49,5 +51,31 @@ public class Main {
         System.out.println(SmartPermissionChecker.canActivateMilestone(milestone1, 5));
         milestone1.addTicket(ticket1.id());
         System.out.println(SmartPermissionChecker.canActivateMilestone(milestone1, 5));
+
+        System.out.println("\n===== Structured Concurrency Demo =====");
+
+        var analyticsService = new ProjectAnalyticsService(service);
+
+        System.out.println("\nLoading project analytics (in parallel)...");
+        long startTime = System.currentTimeMillis();
+
+        var analytics = analyticsService.getProjectAnalytics(project.id());
+
+        long duration = System.currentTimeMillis() - startTime;
+        System.out.println(STR."Loaded in \{duration}ms (parallel instead of sequential)");
+
+        System.out.println(STR."""
+
+            Project Analytics: \{analytics.project().name()}
+            ─────────────────────────────────────
+            Tickets: \{analytics.stats().totalTickets()} (completed: \{analytics.stats().completedTickets()})
+            Open bugs: \{analytics.stats().openBugs()} (critical: \{analytics.stats().criticalBugs()})
+            Progress: \{String.format("%.1f", analytics.stats().completionPercentage())}%
+            """);
+
+        System.out.println("Running quick health check...");
+        var healthCheck = analyticsService.quickHealthCheck(project.id());
+        System.out.println(STR."Health: \{healthCheck.healthy() ? "OK" : "PROBLEM"}");
+        System.out.println(STR."Details: \{healthCheck.issue()}");
     }
 }
